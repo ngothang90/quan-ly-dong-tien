@@ -4,10 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kế hoạch quản lý dòng tiền và trả nợ (Đến 31/03/2027)</title>
+
+    <!-- PWA & APP CONFIGURATION -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- iOS / Safari App Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Quản Lý Tiền">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2489/2489756.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <!-- Thư viện xử lý Excel SheetJS -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <!-- Firebase SDK (v9 Compat) -->
@@ -57,10 +67,10 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 pb-12 min-h-screen font-sans antialiased">
+<body class="bg-slate-100 text-slate-800 pb-12 min-h-screen font-sans antialiased select-none">
 
     <!-- STICKY TOP NAV -->
-    <div class="sticky top-0 z-50 bg-slate-900 text-white shadow-md border-b border-indigo-900 px-3 py-2.5">
+    <div class="sticky top-0 z-50 bg-slate-900 text-white shadow-md border-b border-indigo-900 px-3 py-2.5 pt-safe">
         <div class="max-w-6xl mx-auto flex items-center justify-between gap-1.5 flex-wrap">
             <div class="flex items-center gap-1">
                 <button onclick="changeDate(-1)" class="px-2 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
@@ -82,12 +92,10 @@
                     💾 <span class="hidden md:inline">Lưu</span>
                 </button>
                 
-                <!-- EXPORT EXCEL -->
                 <button onclick="exportExcel()" class="px-2.5 py-1.5 bg-green-700 text-white rounded-lg text-xs font-bold hover:bg-green-800 transition flex items-center gap-1 shadow-sm active:scale-95" title="Xuất Excel">
                     📊 <span class="hidden sm:inline">Xuất Excel</span>
                 </button>
 
-                <!-- IMPORT EXCEL -->
                 <label class="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center gap-1 shadow-sm cursor-pointer active:scale-95" title="Nhập Excel">
                     📥 <span class="hidden sm:inline">Nhập Excel</span>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcel(event)">
@@ -108,7 +116,6 @@
 
         <!-- KHỐI CHỈNH SỬA THU / CHI CHO NGÀY ĐANG CHỌN -->
         <div id="singleDayCard" class="bg-white p-3.5 md:p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <!-- Render bằng JavaScript -->
         </div>
 
         <!-- BỘ LỌC KHOẢNG THỜI GIAN BIỂU ĐỒ -->
@@ -162,22 +169,27 @@
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody" class="divide-y divide-slate-100">
-                        <!-- Render JS -->
                     </tbody>
                 </table>
             </div>
 
             <div class="block md:hidden max-h-96 overflow-y-auto space-y-2 pr-1" id="summaryCardList">
-                <!-- Render JS cho mobile -->
             </div>
         </div>
 
     </div>
 
     <script>
-        // ==========================================
-        // 1. CẤU HÌNH FIREBASE VỚI KEYS CỦA BẠN
-        // ==========================================
+        // ĐĂNG KÝ SERVICE WORKER CHO PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Registered', reg))
+                    .catch(err => console.log('PWA Register Failed', err));
+            });
+        }
+
+        // FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyBNrzZj8m1ov1daek_0WeKKkuqxW4t61f0",
             authDomain: "quanlytien-60310.firebaseapp.com",
@@ -188,19 +200,12 @@
             measurementId: "G-VM2GKNWDG6"
         };
 
-        // Khởi tạo Firebase
         firebase.initializeApp(firebaseConfig);
-        if (firebase.analytics) {
-            firebase.analytics();
-        }
+        if (firebase.analytics) firebase.analytics();
         const db = firebase.database();
         const dbRef = db.ref("dong_tien_data");
 
-        // ==========================================
-        // 2. KHỞI TẠO BIẾN VÀ DỮ LIỆU
-        // ==========================================
         const EXCHANGE_RATE = 26000;
-
         const fmtUSD = (v) => v ? '$' + new Intl.NumberFormat('en-US').format(Math.round(v)) : '$0';
         const fmtVND = (v) => v ? new Intl.NumberFormat('vi-VN').format(Math.round(v)) : '0';
         
@@ -250,9 +255,6 @@
             };
         });
 
-        // ==========================================
-        // 3. LẮNG NGHE ĐỒNG BỘ REALTIME TỪ FIREBASE
-        // ==========================================
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
             const statusEl = document.getElementById('syncStatus');
@@ -436,7 +438,6 @@
             renderTableSummary();
             renderChart();
 
-            // Tự động lưu lên Firebase sau 800ms dừng gõ
             clearTimeout(debounceTimer);
             const statusEl = document.getElementById('syncStatus');
             if (statusEl) {
@@ -516,9 +517,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ==========================================
-        // 4. LƯU DỮ LIỆU LÊN LOCAL & FIREBASE
-        // ==========================================
         function saveData(showAlert = false) {
             let mapToSave = {};
             rowsData.forEach(r => {
@@ -529,10 +527,8 @@
                 };
             });
 
-            // Dự phòng vào LocalStorage
             localStorage.setItem('fx_data_2027_v4', JSON.stringify(mapToSave));
 
-            // Đẩy lên Realtime Database quanlytien-60310
             dbRef.set(mapToSave).then(() => {
                 if (showAlert) alert('Đã lưu và đồng bộ lên Firebase!');
             }).catch(err => {
@@ -541,7 +537,6 @@
             });
         }
 
-        /* --- XUẤT FILE EXCEL (.XLSX) --- */
         function exportExcel() {
             calculateAll();
             const exportArray = rowsData.map(r => ({
@@ -582,7 +577,6 @@
             XLSX.writeFile(workbook, fileName);
         }
 
-        /* --- NHẬP FILE EXCEL (.XLSX) --- */
         function importExcel(event) {
             const file = event.target.files[0];
             if (!file) return;
