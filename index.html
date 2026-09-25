@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kế hoạch quản lý dòng tiền và trả nợ (Đến 31/03/2027)</title>
+    <title>Kế hoạch quản lý dòng tiền và trả nợ</title>
 
     <!-- PWA & APP CONFIGURATION -->
     <link rel="manifest" href="manifest.json">
@@ -189,21 +189,42 @@
             });
         }
 
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION MỚI ĐÃ CẬP NHẬT CHUẨN REGION
         const firebaseConfig = {
             apiKey: "AIzaSyBNrzZj8m1ov1daek_0WeKKkuqxW4t61f0",
             authDomain: "quanlytien-60310.firebaseapp.com",
+            databaseURL: "https://quanlytien-60310-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "quanlytien-60310",
             storageBucket: "quanlytien-60310.firebasestorage.app",
             messagingSenderId: "184350875434",
-            appId: "1:184350875434:web:c771e20e2e97f13a9c0853",
-            measurementId: "G-VM2GKNWDG6"
+            appId: "1:184350875434:web:5a72f8388aa116de9c0853",
+            measurementId: "G-2MYN0K809J"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         if (firebase.analytics) firebase.analytics();
+
         const db = firebase.database();
         const dbRef = db.ref("dong_tien_data");
+
+        // KIỂM TRA TRẠNG THÁI KẾT NỐI REALTIME
+        const connectedRef = db.ref(".info/connected");
+        connectedRef.on("value", (snap) => {
+            const statusEl = document.getElementById('syncStatus');
+            if (snap.val() === true) {
+                if (statusEl) {
+                    statusEl.innerText = "🟢 Đã đồng bộ";
+                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700";
+                }
+            } else {
+                if (statusEl) {
+                    statusEl.innerText = "🔄 Đang kết nối...";
+                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700";
+                }
+            }
+        });
 
         const EXCHANGE_RATE = 26000;
         const fmtUSD = (v) => v ? '$' + new Intl.NumberFormat('en-US').format(Math.round(v)) : '$0';
@@ -257,7 +278,6 @@
 
         dbRef.on('value', (snapshot) => {
             const data = snapshot.val();
-            const statusEl = document.getElementById('syncStatus');
             if (data) {
                 storedData = data;
                 localStorage.setItem('fx_data_2027_v4', JSON.stringify(storedData));
@@ -277,21 +297,12 @@
                 });
 
                 renderActiveDay();
-                if (statusEl) {
-                    statusEl.innerText = "🟢 Đã đồng bộ";
-                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700";
-                }
-            } else {
-                if (statusEl) {
-                    statusEl.innerText = "🟡 Trống (Chờ lưu)";
-                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-amber-950 text-amber-300 border border-amber-700";
-                }
             }
         }, (error) => {
             console.error("Lỗi Firebase:", error);
             const statusEl = document.getElementById('syncStatus');
             if (statusEl) {
-                statusEl.innerText = "🔴 Lỗi kết nối";
+                statusEl.innerText = "🔴 Lỗi kết nối / QTM";
                 statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-rose-950 text-rose-300 border border-rose-700";
             }
         });
