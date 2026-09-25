@@ -7,8 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- Thư viện xử lý Excel SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Firebase SDK (v9 Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
     <style>
-        /* Tối ưu Input trên Mobile để không bị zoom tự động */
         input[type="text"].formatted-money, input[type="date"] {
             font-size: 15px;
             font-weight: 600;
@@ -40,19 +47,9 @@
             margin-bottom: 3px;
             display: block;
         }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        /* Tab CSS */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .active-tab {
             border-bottom: 3px solid #2563eb;
             color: #2563eb;
@@ -62,28 +59,39 @@
 </head>
 <body class="bg-slate-100 text-slate-800 pb-12 min-h-screen font-sans antialiased">
 
-    <!-- STICKY TOP NAV FOR MOBILE -->
+    <!-- STICKY TOP NAV -->
     <div class="sticky top-0 z-50 bg-slate-900 text-white shadow-md border-b border-indigo-900 px-3 py-2.5">
-        <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
-            <button onclick="changeDate(-1)" class="px-2.5 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
-                ◀ <span class="hidden sm:inline">Trước</span>
-            </button>
-            
-            <div class="flex items-center gap-1.5">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-1.5 flex-wrap">
+            <div class="flex items-center gap-1">
+                <button onclick="changeDate(-1)" class="px-2 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
+                    ◀ <span class="hidden sm:inline">Trước</span>
+                </button>
                 <input type="date" id="currentDatePicker" onchange="onDateSelect(this.value)" class="!bg-indigo-950 !text-white !border-indigo-500/60 !py-1 !px-2 !text-xs font-bold text-center cursor-pointer">
+                <button onclick="changeDate(1)" class="px-2 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
+                    <span class="hidden sm:inline">Sau</span> ▶
+                </button>
             </div>
 
-            <button onclick="changeDate(1)" class="px-2.5 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
-                <span class="hidden sm:inline">Sau</span> ▶
-            </button>
-
+            <!-- TRẠNG THÁI ĐỒNG BỘ & THAO TÁC -->
             <div class="flex items-center gap-1.5 ml-auto">
-                <button onclick="saveData()" class="p-1.5 sm:px-3 sm:py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm active:scale-95" title="Lưu">
+                <span id="syncStatus" class="text-[11px] font-bold px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    🔄 Đang kết nối...
+                </span>
+
+                <button onclick="saveData(true)" class="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition flex items-center gap-1 shadow-sm active:scale-95" title="Lưu">
                     💾 <span class="hidden md:inline">Lưu</span>
                 </button>
-                <button onclick="exportJSON()" class="p-1.5 sm:px-3 sm:py-1.5 bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1 shadow-sm active:scale-95" title="Xuất JSON">
-                    📥 <span class="hidden md:inline">JSON</span>
+                
+                <!-- EXPORT EXCEL -->
+                <button onclick="exportExcel()" class="px-2.5 py-1.5 bg-green-700 text-white rounded-lg text-xs font-bold hover:bg-green-800 transition flex items-center gap-1 shadow-sm active:scale-95" title="Xuất Excel">
+                    📊 <span class="hidden sm:inline">Xuất Excel</span>
                 </button>
+
+                <!-- IMPORT EXCEL -->
+                <label class="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center gap-1 shadow-sm cursor-pointer active:scale-95" title="Nhập Excel">
+                    📥 <span class="hidden sm:inline">Nhập Excel</span>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="importExcel(event)">
+                </label>
             </div>
         </div>
     </div>
@@ -94,7 +102,7 @@
         <div class="bg-white p-3.5 md:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
                 <h1 class="text-base md:text-xl font-bold text-slate-900 tracking-tight">Kế hoạch Quản lý Dòng Tiền & FX (Đến 31/03/2027)</h1>
-                <p class="text-[11px] md:text-xs text-slate-500 mt-0.5">Lãi Kép FX 5%/ngày • Tỷ giá: <span class="font-bold text-blue-600">$1 = 26.000 VNĐ</span></p>
+                <p class="text-[11px] md:text-xs text-slate-500 mt-0.5">Project: <span class="font-semibold text-slate-700">quanlytien-60310</span> • Tỷ giá: <span class="font-bold text-blue-600">$1 = 26.000 VNĐ</span></p>
             </div>
         </div>
 
@@ -139,7 +147,6 @@
         <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
             <h3 class="text-xs md:text-sm font-bold text-slate-800">📋 Bảng Tổng Quan Lũy Kế & Dòng Tiền Dư</h3>
             
-            <!-- Hiển thị Bảng trên Desktop (md trở lên) -->
             <div class="hidden md:block max-h-80 overflow-y-auto rounded-xl border border-slate-200">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-100/90 text-slate-600 sticky top-0 font-bold backdrop-blur-sm">
@@ -160,7 +167,6 @@
                 </table>
             </div>
 
-            <!-- Hiển thị Danh sách Thẻ (Cards) trên Điện thoại -->
             <div class="block md:hidden max-h-96 overflow-y-auto space-y-2 pr-1" id="summaryCardList">
                 <!-- Render JS cho mobile -->
             </div>
@@ -169,6 +175,30 @@
     </div>
 
     <script>
+        // ==========================================
+        // 1. CẤU HÌNH FIREBASE VỚI KEYS CỦA BẠN
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNrzZj8m1ov1daek_0WeKKkuqxW4t61f0",
+            authDomain: "quanlytien-60310.firebaseapp.com",
+            projectId: "quanlytien-60310",
+            storageBucket: "quanlytien-60310.firebasestorage.app",
+            messagingSenderId: "184350875434",
+            appId: "1:184350875434:web:c771e20e2e97f13a9c0853",
+            measurementId: "G-VM2GKNWDG6"
+        };
+
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        if (firebase.analytics) {
+            firebase.analytics();
+        }
+        const db = firebase.database();
+        const dbRef = db.ref("dong_tien_data");
+
+        // ==========================================
+        // 2. KHỞI TẠO BIẾN VÀ DỮ LIỆU
+        // ==========================================
         const EXCHANGE_RATE = 26000;
 
         const fmtUSD = (v) => v ? '$' + new Intl.NumberFormat('en-US').format(Math.round(v)) : '$0';
@@ -188,42 +218,6 @@
             return new Intl.NumberFormat('vi-VN').format(num);
         }
 
-        const defaultPresetData = {
-            "2026-09-24": { "thu1": 13000000, "fx_chi": 13000000 },
-            "2026-09-30": { "shinhan1": 9000000, "fx_rut": 10000000 },
-            "2026-10-05": { "vib_chi": 780000 },
-            "2026-10-10": { "luong": 26500000, "sinhhoat": 12000000, "vpb_chi": 400000, "cake_chi": 198000 },
-            "2026-10-11": { "hsbc_chi": 1800000 },
-            "2026-10-15": { "shinhan2": 2500000, "shinhan_chi": 1200000 },
-            "2026-10-20": { "tcb_chi": 240000 },
-            "2026-10-30": { "shinhan1": 9000000, "fx_rut": 1000000 },
-            "2026-11-05": { "chi1": 18000000, "vib_chi": 1020000, "fx_rut": 20000000 },
-            "2026-11-10": { "luong": 26000000, "sinhhoat": 12000000, "vpb_chi": 400000, "cake_chi": 264000 },
-            "2026-11-11": { "hsbc_chi": 1800000 },
-            "2026-11-15": { "shinhan2": 2500000, "shinhan_chi": 1200000 },
-            "2026-11-20": { "tcb_chi": 270000 },
-            "2026-11-30": { "shinhan1": 9000000, "fx_rut": 3000000 },
-            "2026-12-05": { "vib_chi": 1260000 },
-            "2026-12-10": { "luong": 26000000, "sinhhoat": 12000000, "vpb_chi": 400000, "cake_chi": 330000 },
-            "2026-12-11": { "hsbc_chi": 1800000 },
-            "2026-12-15": { "shinhan2": 2500000, "shinhan_chi": 1200000 },
-            "2026-12-20": { "tcb_chi": 300000 },
-            "2026-12-30": { "shinhan1": 9000000 },
-            "2027-01-01": { "chi1": 22000000, "fx_rut": 22000000 },
-            "2027-01-05": { "vib_chi": 96000000 },
-            "2027-01-10": { "luong": 26000000, "sinhhoat": 12000000, "vpb_chi": 20000000, "cake_chi": 20000000 },
-            "2027-01-11": { "hsbc_chi": 90000000 },
-            "2027-01-15": { "shinhan2": 2500000, "shinhan_chi": 60000000 },
-            "2027-01-20": { "luong": 70000000, "chi1": 70000000, "tcb_chi": 20000000 },
-            "2027-01-30": { "shinhan1": 9000000 },
-            "2027-02-10": { "luong": 26000000, "sinhhoat": 12000000 },
-            "2027-02-15": { "shinhan2": 2500000 },
-            "2027-02-28": { "shinhan1": 9000000 },
-            "2027-03-10": { "luong": 26000000, "sinhhoat": 12000000 },
-            "2027-03-15": { "shinhan2": 2500000 },
-            "2027-03-31": { "shinhan1": 300000000, "shinhan2": 100000000, "fx_rut": 400000000 }
-        };
-
         function generateDateRange() {
             let dates = [];
             let curr = new Date('2026-09-24');
@@ -236,41 +230,69 @@
         }
 
         let allDates = generateDateRange();
-        let storedData = JSON.parse(localStorage.getItem('fx_data_2027_v4')) || defaultPresetData;
+        let storedData = JSON.parse(localStorage.getItem('fx_data_2027_v4')) || {};
         let currentIndex = 0;
-        let activeMobileTab = 'thu'; // 'thu' hoặc 'chi' cho giao diện di động
+        let activeMobileTab = 'thu';
+        let chartInstance = null;
+        let debounceTimer = null;
 
         let rowsData = allDates.map((dateStr) => {
             let saved = storedData[dateStr] || {};
             return {
                 date: dateStr,
-                thu1: saved.thu1 || '',
-                luong: saved.luong || '',
-                hsbc_thu: saved.hsbc_thu || '',
-                vib_thu: saved.vib_thu || '',
-                tcb_thu: saved.tcb_thu || '',
-                vpb_thu: saved.vpb_thu || '',
-                cake_thu: saved.cake_thu || '',
-                shinhan_thu: saved.shinhan_thu || '',
-                fx_rut: saved.fx_rut || '',
-
-                chi1: saved.chi1 || '',
-                sinhhoat: saved.sinhhoat || '',
-                hsbc_chi: saved.hsbc_chi || '',
-                vib_chi: saved.vib_chi || '',
-                tcb_chi: saved.tcb_chi || '',
-                vpb_chi: saved.vpb_chi || '',
-                cake_chi: saved.cake_chi || '',
-                shinhan_chi: saved.shinhan_chi || '',
-                shinhan1: saved.shinhan1 || '',
-                shinhan2: saved.shinhan2 || '',
-                fx_chi: saved.fx_chi || '',
-                
-                fx_actual: saved.fx_actual || ''
+                thu1: saved.thu1 || '', luong: saved.luong || '', hsbc_thu: saved.hsbc_thu || '',
+                vib_thu: saved.vib_thu || '', tcb_thu: saved.tcb_thu || '', vpb_thu: saved.vpb_thu || '',
+                cake_thu: saved.cake_thu || '', shinhan_thu: saved.shinhan_thu || '', fx_rut: saved.fx_rut || '',
+                chi1: saved.chi1 || '', sinhhoat: saved.sinhhoat || '', hsbc_chi: saved.hsbc_chi || '',
+                vib_chi: saved.vib_chi || '', tcb_chi: saved.tcb_chi || '', vpb_chi: saved.vpb_chi || '',
+                cake_chi: saved.cake_chi || '', shinhan_chi: saved.shinhan_chi || '', shinhan1: saved.shinhan1 || '',
+                shinhan2: saved.shinhan2 || '', fx_chi: saved.fx_chi || '', fx_actual: saved.fx_actual || ''
             };
         });
 
-        let chartInstance = null;
+        // ==========================================
+        // 3. LẮNG NGHE ĐỒNG BỘ REALTIME TỪ FIREBASE
+        // ==========================================
+        dbRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            const statusEl = document.getElementById('syncStatus');
+            if (data) {
+                storedData = data;
+                localStorage.setItem('fx_data_2027_v4', JSON.stringify(storedData));
+                
+                rowsData = allDates.map((dateStr) => {
+                    let saved = storedData[dateStr] || {};
+                    return {
+                        date: dateStr,
+                        thu1: saved.thu1 || '', luong: saved.luong || '', hsbc_thu: saved.hsbc_thu || '',
+                        vib_thu: saved.vib_thu || '', tcb_thu: saved.tcb_thu || '', vpb_thu: saved.vpb_thu || '',
+                        cake_thu: saved.cake_thu || '', shinhan_thu: saved.shinhan_thu || '', fx_rut: saved.fx_rut || '',
+                        chi1: saved.chi1 || '', sinhhoat: saved.sinhhoat || '', hsbc_chi: saved.hsbc_chi || '',
+                        vib_chi: saved.vib_chi || '', tcb_chi: saved.tcb_chi || '', vpb_chi: saved.vpb_chi || '',
+                        cake_chi: saved.cake_chi || '', shinhan_chi: saved.shinhan_chi || '', shinhan1: saved.shinhan1 || '',
+                        shinhan2: saved.shinhan2 || '', fx_chi: saved.fx_chi || '', fx_actual: saved.fx_actual || ''
+                    };
+                });
+
+                renderActiveDay();
+                if (statusEl) {
+                    statusEl.innerText = "🟢 Đã đồng bộ";
+                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700";
+                }
+            } else {
+                if (statusEl) {
+                    statusEl.innerText = "🟡 Trống (Chờ lưu)";
+                    statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-amber-950 text-amber-300 border border-amber-700";
+                }
+            }
+        }, (error) => {
+            console.error("Lỗi Firebase:", error);
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.innerText = "🔴 Lỗi kết nối";
+                statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-rose-950 text-rose-300 border border-rose-700";
+            }
+        });
 
         function calculateAll() {
             let runningDu = 0;
@@ -319,7 +341,6 @@
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">NGÀY #${currentIndex + 1} / ${rowsData.length}</span>
                         <h2 class="text-base sm:text-lg font-bold text-slate-900">Chi Tiết Dòng Tiền: <span class="text-indigo-600">${r.date}</span></h2>
                     </div>
-                    <!-- Badge Tổng quan -->
                     <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto text-[11px] font-bold">
                         <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg border border-emerald-200/80 text-center">Thu: ${fmtVND(r.totalIncome)} đ</span>
                         <span class="bg-rose-50 text-rose-700 px-2 py-1 rounded-lg border border-rose-200/80 text-center">Chi: ${fmtVND(r.totalExpense)} đ</span>
@@ -328,15 +349,12 @@
                     </div>
                 </div>
 
-                <!-- Chuyển Tab cho Mobile -->
                 <div class="flex md:hidden border-b border-slate-200 text-xs font-bold text-slate-500 mb-2">
                     <button onclick="switchTab('thu')" class="flex-1 py-2 text-center ${activeMobileTab === 'thu' ? 'active-tab' : ''}">💵 Các Khoản Thu</button>
                     <button onclick="switchTab('chi')" class="flex-1 py-2 text-center ${activeMobileTab === 'chi' ? 'active-tab' : ''}">💸 Các Khoản Chi</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    
-                    <!-- KHOẢN THU -->
                     <div class="${activeMobileTab === 'thu' ? 'block' : 'hidden'} md:block bg-emerald-50/50 p-3 sm:p-4 rounded-xl border border-emerald-100/80 space-y-3">
                         <div class="font-bold text-emerald-800 border-b border-emerald-200/60 pb-2 text-xs sm:text-sm flex justify-between items-center">
                             <span>💵 Các Khoản Thu (VNĐ)</span>
@@ -351,7 +369,6 @@
                             <div><span class="label-title">VP Bank</span><input type="text" class="formatted-money" value="${formatInputMoney(r.vpb_thu)}" oninput="handleInput(this, 'vpb_thu')"></div>
                             <div><span class="label-title">Cake</span><input type="text" class="formatted-money" value="${formatInputMoney(r.cake_thu)}" oninput="handleInput(this, 'cake_thu')"></div>
                             <div><span class="label-title">Shinhan</span><input type="text" class="formatted-money" value="${formatInputMoney(r.shinhan_thu)}" oninput="handleInput(this, 'shinhan_thu')"></div>
-                            
                             <div class="col-span-2 bg-emerald-100/60 p-2 rounded-xl border border-emerald-300/70 mt-1">
                                 <span class="label-title text-emerald-900 font-bold">FX Rút Vốn (VNĐ)</span>
                                 <input type="text" class="formatted-money !border-emerald-400 !bg-white !text-emerald-900 font-bold" value="${formatInputMoney(r.fx_rut)}" placeholder="0" oninput="handleInput(this, 'fx_rut')">
@@ -359,7 +376,6 @@
                         </div>
                     </div>
 
-                    <!-- KHOẢN CHI -->
                     <div class="${activeMobileTab === 'chi' ? 'block' : 'hidden'} md:block bg-rose-50/50 p-3 sm:p-4 rounded-xl border border-rose-100/80 space-y-3">
                         <div class="font-bold text-rose-800 border-b border-rose-200/60 pb-2 text-xs sm:text-sm flex justify-between items-center">
                             <span>💸 Các Khoản Chi (VNĐ)</span>
@@ -374,20 +390,16 @@
                             <div><span class="label-title">VP Bank</span><input type="text" class="formatted-money" value="${formatInputMoney(r.vpb_chi)}" oninput="handleInput(this, 'vpb_chi')"></div>
                             <div><span class="label-title">Cake</span><input type="text" class="formatted-money" value="${formatInputMoney(r.cake_chi)}" oninput="handleInput(this, 'cake_chi')"></div>
                             <div><span class="label-title">Shinhan</span><input type="text" class="formatted-money" value="${formatInputMoney(r.shinhan_chi)}" oninput="handleInput(this, 'shinhan_chi')"></div>
-                            
                             <div><span class="label-title font-semibold text-rose-900">Shinhan 1</span><input type="text" class="formatted-money" value="${formatInputMoney(r.shinhan1)}" oninput="handleInput(this, 'shinhan1')"></div>
                             <div><span class="label-title font-semibold text-rose-900">Shinhan 2</span><input type="text" class="formatted-money" value="${formatInputMoney(r.shinhan2)}" oninput="handleInput(this, 'shinhan2')"></div>
-
                             <div class="col-span-2 bg-rose-100/60 p-2 rounded-xl border border-rose-300/70 mt-1">
                                 <span class="label-title font-bold text-rose-900">FX Chi (Nạp Vốn FX VNĐ)</span>
                                 <input type="text" class="formatted-money !border-rose-400 !bg-white !text-rose-900 font-bold" value="${formatInputMoney(r.fx_chi)}" placeholder="0" oninput="handleInput(this, 'fx_chi')">
                             </div>
                         </div>
                     </div>
-
                 </div>
 
-                <!-- THỰC TẾ NHẬP TAY -->
                 <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs">
                     <div class="flex items-center justify-between sm:justify-start gap-2">
                         <span class="font-bold text-indigo-950 text-xs sm:text-sm">✍️ Kết Quả FX Thực Tế:</span>
@@ -420,25 +432,32 @@
                 inputElem.value = formatted;
             }
 
-            saveDataLocally();
             calculateAll();
             renderTableSummary();
             renderChart();
+
+            // Tự động lưu lên Firebase sau 800ms dừng gõ
+            clearTimeout(debounceTimer);
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.innerText = "⏳ Đang nhập...";
+                statusEl.className = "text-[11px] font-bold px-2 py-1 rounded bg-blue-950 text-blue-300 border border-blue-700";
+            }
+            debounceTimer = setTimeout(() => {
+                saveData(false);
+            }, 800);
         }
 
         function renderTableSummary() {
-            // Render Table cho Desktop
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
             
-            // Render Card List cho Mobile
             const cardList = document.getElementById('summaryCardList');
             cardList.innerHTML = '';
 
             rowsData.forEach((row, idx) => {
                 const duClass = row.du >= 0 ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
 
-                // 1. Row Desktop
                 const tr = document.createElement('tr');
                 tr.className = idx === currentIndex ? 'bg-indigo-50/90 font-bold text-slate-900' : 'hover:bg-slate-50/80 transition';
                 tr.innerHTML = `
@@ -455,7 +474,6 @@
                 `;
                 tbody.appendChild(tr);
 
-                // 2. Card Mobile
                 const activeCardStyle = idx === currentIndex ? 'border-2 border-indigo-500 bg-indigo-50/40' : 'border border-slate-200 bg-white';
                 const card = document.createElement('div');
                 card.className = `p-3 rounded-xl ${activeCardStyle} text-xs space-y-1.5 shadow-2xs`;
@@ -498,7 +516,10 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function saveDataLocally() {
+        // ==========================================
+        // 4. LƯU DỮ LIỆU LÊN LOCAL & FIREBASE
+        // ==========================================
+        function saveData(showAlert = false) {
             let mapToSave = {};
             rowsData.forEach(r => {
                 mapToSave[r.date] = {
@@ -507,22 +528,114 @@
                     fx_actual: r.fx_actual
                 };
             });
+
+            // Dự phòng vào LocalStorage
             localStorage.setItem('fx_data_2027_v4', JSON.stringify(mapToSave));
+
+            // Đẩy lên Realtime Database quanlytien-60310
+            dbRef.set(mapToSave).then(() => {
+                if (showAlert) alert('Đã lưu và đồng bộ lên Firebase!');
+            }).catch(err => {
+                console.error("Lỗi đồng bộ Firebase:", err);
+                if (showAlert) alert('Lỗi kết nối Firebase. Dữ liệu đã lưu tạm ở bộ nhớ máy!');
+            });
         }
 
-        function saveData() {
-            saveDataLocally();
-            alert('Đã lưu dữ liệu thành công!');
+        /* --- XUẤT FILE EXCEL (.XLSX) --- */
+        function exportExcel() {
+            calculateAll();
+            const exportArray = rowsData.map(r => ({
+                'Ngày': r.date,
+                'Thu 1': p(r.thu1),
+                'Lương + Thưởng': p(r.luong),
+                'HSBC Thu': p(r.hsbc_thu),
+                'VIB Thu': p(r.vib_thu),
+                'Techcombank Thu': p(r.tcb_thu),
+                'VP Bank Thu': p(r.vpb_thu),
+                'Cake Thu': p(r.cake_thu),
+                'Shinhan Thu': p(r.shinhan_thu),
+                'FX Rút Vốn': p(r.fx_rut),
+                'Chi 1': p(r.chi1),
+                'Sinh Hoạt': p(r.sinhhoat),
+                'HSBC Chi': p(r.hsbc_chi),
+                'VIB Chi': p(r.vib_chi),
+                'Techcombank Chi': p(r.tcb_chi),
+                'VP Bank Chi': p(r.vpb_chi),
+                'Cake Chi': p(r.cake_chi),
+                'Shinhan Chi': p(r.shinhan_chi),
+                'Shinhan 1': p(r.shinhan1),
+                'Shinhan 2': p(r.shinhan2),
+                'FX Chi (Nạp Vốn)': p(r.fx_chi),
+                'FX Thực Tế ($)': p(r.fx_actual),
+                'Tổng Thu': r.totalIncome,
+                'Tổng Chi': r.totalExpense,
+                'Dư Lũy Kế': r.du,
+                'Vốn FX (VNĐ)': r.fxVon,
+                'FX KH ($)': r.fxPlanUSD
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(exportArray);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DongTien_FX");
+            
+            const fileName = `KeHoach_DongTien_FX_${new Date().toISOString().slice(0,10)}.xlsx`;
+            XLSX.writeFile(workbook, fileName);
         }
 
-        function exportJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rowsData, null, 2));
-            const a = document.createElement('a');
-            a.setAttribute("href", dataStr);
-            a.setAttribute("download", `KeHoach_DongTien_FX_2027_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+        /* --- NHẬP FILE EXCEL (.XLSX) --- */
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    let mapToSave = {};
+
+                    json.forEach(row => {
+                        const dateStr = row['Ngày'];
+                        if (dateStr) {
+                            mapToSave[dateStr] = {
+                                thu1: row['Thu 1'] || '',
+                                luong: row['Lương + Thưởng'] || '',
+                                hsbc_thu: row['HSBC Thu'] || '',
+                                vib_thu: row['VIB Thu'] || '',
+                                tcb_thu: row['Techcombank Thu'] || '',
+                                vpb_thu: row['VP Bank Thu'] || '',
+                                cake_thu: row['Cake Thu'] || '',
+                                shinhan_thu: row['Shinhan Thu'] || '',
+                                fx_rut: row['FX Rút Vốn'] || '',
+                                chi1: row['Chi 1'] || '',
+                                sinhhoat: row['Sinh Hoạt'] || '',
+                                hsbc_chi: row['HSBC Chi'] || '',
+                                vib_chi: row['VIB Chi'] || '',
+                                tcb_chi: row['Techcombank Chi'] || '',
+                                vpb_chi: row['VP Bank Chi'] || '',
+                                cake_chi: row['Cake Chi'] || '',
+                                shinhan_chi: row['Shinhan Chi'] || '',
+                                shinhan1: row['Shinhan 1'] || '',
+                                shinhan2: row['Shinhan 2'] || '',
+                                fx_chi: row['FX Chi (Nạp Vốn)'] || '',
+                                fx_actual: row['FX Thực Tế ($)'] || ''
+                            };
+                        }
+                    });
+
+                    dbRef.set(mapToSave).then(() => {
+                        alert('Nhập dữ liệu từ Excel và đồng bộ Firebase thành công!');
+                    });
+                } catch (err) {
+                    alert('Lỗi định dạng file Excel!');
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function renderChart() {
@@ -583,10 +696,7 @@
                     scales: {
                         x: { 
                             type: 'time',
-                            time: {
-                                unit: 'day',
-                                displayFormats: { day: 'MM/dd' }
-                            },
+                            time: { unit: 'day', displayFormats: { day: 'MM/dd' } },
                             min: startDate || undefined,
                             max: endDate || undefined,
                             ticks: { font: { size: 10 } }
@@ -620,7 +730,6 @@
             updateChartRange();
         }
 
-        // Khởi chạy
         renderActiveDay();
     </script>
 </body>
