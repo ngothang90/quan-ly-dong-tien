@@ -57,9 +57,10 @@
             margin-bottom: 3px;
             display: block;
         }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .active-tab {
             border-bottom: 3px solid #2563eb;
             color: #2563eb;
@@ -71,7 +72,7 @@
 
     <!-- STICKY TOP NAV -->
     <div class="sticky top-0 z-50 bg-slate-900 text-white shadow-md border-b border-indigo-900 px-3 py-2.5 pt-safe">
-        <div class="max-w-6xl mx-auto flex items-center justify-between gap-1.5 flex-wrap">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-1.5 flex-wrap">
             <div class="flex items-center gap-1">
                 <button onclick="changeDate(-1)" class="px-2 py-1.5 bg-indigo-800/80 hover:bg-indigo-700 rounded-lg text-xs font-bold transition flex items-center gap-1 active:scale-95">
                     ◀ <span class="hidden sm:inline">Trước</span>
@@ -107,7 +108,7 @@
         </div>
     </div>
 
-    <div class="max-w-6xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
+    <div class="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6">
         
         <!-- HEADER INFO -->
         <div class="bg-white p-3.5 md:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -153,30 +154,32 @@
             </div>
         </div>
 
-        <!-- BẢNG TỔNG QUAN LŨY KẾ & DẠNG CARD CHO MOBILE -->
+        <!-- BẢNG TỔNG QUAN TỐI GIẢN (ĐÚNG 5 CỘT CHÍNH) -->
         <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-            <h3 class="text-xs md:text-sm font-bold text-slate-800">📋 Bảng Tổng Quan Lũy Kế & Dòng Tiền Dư</h3>
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs md:text-sm font-bold text-slate-800">📋 Bảng Thống Kê Tổng Quan Dòng Tiền</h3>
+            </div>
             
-            <div class="hidden md:block max-h-80 overflow-y-auto rounded-xl border border-slate-200">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-100/90 text-slate-600 sticky top-0 font-bold backdrop-blur-sm">
+            <!-- BẢNG MÁY TÍNH VÀ THIẾT BỊ LỚN -->
+            <div class="hidden md:block max-h-96 overflow-y-auto rounded-xl border border-slate-200 shadow-inner">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="bg-slate-800 text-white sticky top-0 font-bold z-30 shadow-sm">
                         <tr>
-                            <th class="p-2.5">Ngày</th>
-                            <th class="p-2.5 text-right">Tổng Thu (VNĐ)</th>
-                            <th class="p-2.5 text-right">Tổng Chi (VNĐ)</th>
-                            <th class="p-2.5 text-right bg-amber-50/80 text-amber-900 border-x border-amber-200/70">Dư Lũy Kế (VNĐ)</th>
-                            <th class="p-2.5 text-right">FX Vốn (VNĐ)</th>
-                            <th class="p-2.5 text-right">FX KH ($ USD)</th>
-                            <th class="p-2.5 text-right">FX Thực Tế ($ USD)</th>
-                            <th class="p-2.5 text-center">Thao Tác</th>
+                            <th class="p-2.5 bg-slate-800 min-w-[100px]">Ngày</th>
+                            <th class="p-2.5 text-right bg-emerald-800 text-white font-bold">Tổng Thu</th>
+                            <th class="p-2.5 text-right bg-rose-800 text-white font-bold">Tổng Chi</th>
+                            <th class="p-2.5 text-right bg-amber-500 text-slate-900 font-extrabold">Dư Lũy Kế</th>
+                            <th class="p-2.5 text-right bg-teal-800 text-teal-100">FX KH ($)</th>
+                            <th class="p-2.5 text-right bg-blue-800 text-blue-100">FX Thực Tế ($)</th>
+                            <th class="p-2.5 text-center bg-slate-800">Thao tác</th>
                         </tr>
                     </thead>
-                    <tbody id="summaryTableBody" class="divide-y divide-slate-100">
+                    <tbody id="summaryTableBody" class="divide-y divide-slate-200 text-xs">
                     </tbody>
                 </table>
             </div>
 
-            <!-- GIAO DIỆN DẠNG CARD TỔNG QUAN TỐI ƯU TRÊN MOBILE -->
+            <!-- GIAO DIỆN DẠNG CARD TỔNG QUAN CHO MOBILE -->
             <div class="block md:hidden max-h-[28rem] overflow-y-auto space-y-2.5 pr-1" id="summaryCardList">
             </div>
         </div>
@@ -270,11 +273,10 @@
         let allDates = generateDateRange();
         let storedData = JSON.parse(localStorage.getItem('fx_data_2027_v4')) || {};
         
-        // MẶC ĐỊNH NGÀY HÔM NAY KHI MỞ MÀN HÌNH
         let todayStr = getTodayStr();
         let currentIndex = allDates.indexOf(todayStr);
         if (currentIndex === -1) {
-            currentIndex = 0; // Nếu nằm ngoài dải dữ liệu thì chọn ngày đầu tiên
+            currentIndex = 0;
         }
 
         let activeMobileTab = 'thu';
@@ -295,7 +297,6 @@
             };
         });
 
-        // TẢI LẠI TRẠNG THÁI BỘ LỌC BIỂU ĐỒ ĐÃ LƯU
         window.addEventListener('DOMContentLoaded', () => {
             const savedChartStart = localStorage.getItem('chart_start_date');
             const savedChartEnd = localStorage.getItem('chart_end_date');
@@ -441,7 +442,7 @@
                     </div>
                 </div>
 
-                <!-- KHỐI FX THỰC TẾ ĐÃ CHỈNH SỬA TÁCH BIỆT 2 PHẦN -->
+                <!-- KHỐI FX THỰC TẾ -->
                 <div class="bg-indigo-50/80 p-3 sm:p-4 rounded-xl border border-indigo-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="font-bold text-indigo-950 text-xs sm:text-sm whitespace-nowrap">✍️ FX Thực Tế:</span>
@@ -496,6 +497,7 @@
             }, 800);
         }
 
+        // RENDER BẢNG THỐNG KÊ TỔNG QUAN CHỈ CÓ 5 CỘT YÊU CẦU
         function renderTableSummary() {
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
@@ -505,26 +507,25 @@
 
             rowsData.forEach((row, idx) => {
                 const duClass = row.du >= 0 ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
+                const isSelected = idx === currentIndex;
 
-                // DESKTOP TABLE
+                // BẢNG MÁY TÍNH (Chỉ hiển thị đúng 5 chỉ số chính)
                 const tr = document.createElement('tr');
-                tr.className = idx === currentIndex ? 'bg-indigo-50/90 font-bold text-slate-900' : 'hover:bg-slate-50/80 transition';
+                tr.className = isSelected ? 'bg-indigo-100/90 font-bold text-slate-900 border-l-4 border-indigo-600' : 'hover:bg-slate-50 transition';
                 tr.innerHTML = `
-                    <td class="p-2.5 font-medium">${row.date}</td>
-                    <td class="p-2.5 text-right text-emerald-700 font-medium">${fmtVND(row.totalIncome)}</td>
-                    <td class="p-2.5 text-right text-rose-700 font-medium">${fmtVND(row.totalExpense)}</td>
-                    <td class="p-2.5 text-right bg-amber-50/50 border-x border-amber-100 ${duClass}">${fmtVND(row.du)}</td>
-                    <td class="p-2.5 text-right text-slate-700 font-medium">${fmtVND(row.fxVon)}</td>
-                    <td class="p-2.5 text-right text-emerald-800 font-bold">${fmtUSD(row.fxPlanUSD)}</td>
-                    <td class="p-2.5 text-right text-blue-700 font-bold">${fmtUSD(p(row.fx_actual))}</td>
+                    <td class="p-2.5 font-semibold text-slate-800">${row.date} ${isSelected ? '📌' : ''}</td>
+                    <td class="p-2.5 text-right text-emerald-700 font-bold bg-emerald-50/50">${fmtVND(row.totalIncome)}</td>
+                    <td class="p-2.5 text-right text-rose-700 font-bold bg-rose-50/50">${fmtVND(row.totalExpense)}</td>
+                    <td class="p-2.5 text-right bg-amber-100/60 ${duClass}">${fmtVND(row.du)}</td>
+                    <td class="p-2.5 text-right text-teal-800 font-bold bg-teal-50/50">${fmtUSD(row.fxPlanUSD)}</td>
+                    <td class="p-2.5 text-right text-blue-700 font-bold bg-blue-50/50">${fmtUSD(p(row.fx_actual))}</td>
                     <td class="p-2.5 text-center">
-                        <button onclick="jumpToIdx(${idx})" class="px-2 py-1 bg-indigo-100/80 text-indigo-700 hover:bg-indigo-200 rounded-lg text-xs font-semibold transition">Sửa</button>
+                        <button onclick="jumpToIdx(${idx})" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition">Sửa</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
 
-                // MOBILE CARD VIEW TỐI ƯU DỄ NHÌN
-                const isSelected = idx === currentIndex;
+                // THIẾT BỊ DI ĐỘNG (Card xem nhanh)
                 const cardStyle = isSelected ? 'border-2 border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border border-slate-200 bg-white';
                 
                 const card = document.createElement('div');
@@ -548,7 +549,7 @@
                             <span class="${duClass} text-xs">${fmtVND(row.du)} đ</span>
                         </div>
                         <div class="col-span-2 grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-slate-600">
-                            <div>FX KH: <span class="text-emerald-700 font-bold">${fmtUSD(row.fxPlanUSD)}</span></div>
+                            <div>FX KH: <span class="text-teal-700 font-bold">${fmtUSD(row.fxPlanUSD)}</span></div>
                             <div>FX Thực Tế: <span class="text-blue-700 font-bold">${fmtUSD(p(row.fx_actual))}</span></div>
                         </div>
                     </div>
@@ -613,32 +614,11 @@
             calculateAll();
             const exportArray = rowsData.map(r => ({
                 'Ngày': r.date,
-                'Thu 1': p(r.thu1),
-                'Lương + Thưởng': p(r.luong),
-                'HSBC Thu': p(r.hsbc_thu),
-                'VIB Thu': p(r.vib_thu),
-                'Techcombank Thu': p(r.tcb_thu),
-                'VP Bank Thu': p(r.vpb_thu),
-                'Cake Thu': p(r.cake_thu),
-                'Shinhan Thu': p(r.shinhan_thu),
-                'FX Rút Vốn': p(r.fx_rut),
-                'Chi 1': p(r.chi1),
-                'Sinh Hoạt': p(r.sinhhoat),
-                'HSBC Chi': p(r.hsbc_chi),
-                'VIB Chi': p(r.vib_chi),
-                'Techcombank Chi': p(r.tcb_chi),
-                'VP Bank Chi': p(r.vpb_chi),
-                'Cake Chi': p(r.cake_chi),
-                'Shinhan Chi': p(r.shinhan_chi),
-                'Shinhan 1': p(r.shinhan1),
-                'Shinhan 2': p(r.shinhan2),
-                'FX Chi (Nạp Vốn)': p(r.fx_chi),
-                'FX Thực Tế ($)': p(r.fx_actual),
-                'Tổng Thu': r.totalIncome,
-                'Tổng Chi': r.totalExpense,
-                'Dư Lũy Kế': r.du,
-                'Vốn FX (VNĐ)': r.fxVon,
-                'FX KH ($)': r.fxPlanUSD
+                'Tổng Thu (VNĐ)': r.totalIncome,
+                'Tổng Chi (VNĐ)': r.totalExpense,
+                'Dư Lũy Kế (VNĐ)': r.du,
+                'FX KH ($)': r.fxPlanUSD,
+                'FX Thực Tế ($)': p(r.fx_actual)
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(exportArray);
@@ -784,7 +764,6 @@
             const start = document.getElementById('chartStartDate').value;
             const end = document.getElementById('chartEndDate').value;
 
-            // LƯU TRẠNG THÁI BỘ LỌC BIỂU ĐỒ VÀO LOCALSTORAGE
             if (start) localStorage.setItem('chart_start_date', start);
             if (end) localStorage.setItem('chart_end_date', end);
 
