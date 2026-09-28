@@ -154,33 +154,29 @@
             </div>
         </div>
 
-        <!-- BẢNG TỔNG QUAN TỐI GIẢN (ĐÚNG 5 CỘT CHÍNH) -->
+        <!-- BẢNG TỔNG QUAN HIỂN THỊ DẠNG HÀNG TRÊN CẢ DI ĐỘNG & MÁY TÍNH -->
         <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
             <div class="flex justify-between items-center">
                 <h3 class="text-xs md:text-sm font-bold text-slate-800">📋 Bảng Thống Kê Tổng Quan Dòng Tiền</h3>
             </div>
             
-            <!-- BẢNG MÁY TÍNH VÀ THIẾT BỊ LỚN -->
-            <div class="hidden md:block max-h-96 overflow-y-auto rounded-xl border border-slate-200 shadow-inner">
-                <table class="w-full text-left text-xs whitespace-nowrap">
+            <!-- KHU VỰC BẢNG CHO PHÉP CUỘN NGANG TRÊN ĐIỆN THOẠI (1 DÒNG / NGÀY) -->
+            <div class="w-full max-h-[28rem] md:max-h-96 overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 shadow-inner">
+                <table class="w-full text-left text-xs whitespace-nowrap min-w-[600px]">
                     <thead class="bg-slate-800 text-white sticky top-0 font-bold z-30 shadow-sm">
                         <tr>
-                            <th class="p-2.5 bg-slate-800 min-w-[100px]">Ngày</th>
-                            <th class="p-2.5 text-right bg-emerald-800 text-white font-bold">Tổng Thu</th>
-                            <th class="p-2.5 text-right bg-rose-800 text-white font-bold">Tổng Chi</th>
-                            <th class="p-2.5 text-right bg-amber-500 text-slate-900 font-extrabold">Dư Lũy Kế</th>
-                            <th class="p-2.5 text-right bg-teal-800 text-teal-100">FX KH ($)</th>
-                            <th class="p-2.5 text-right bg-blue-800 text-blue-100">FX Thực Tế ($)</th>
-                            <th class="p-2.5 text-center bg-slate-800">Thao tác</th>
+                            <th class="p-2 md:p-2.5 bg-slate-800 min-w-[85px] text-center">Ngày</th>
+                            <th class="p-2 md:p-2.5 text-right bg-emerald-800 text-white font-bold">Tổng Thu</th>
+                            <th class="p-2 md:p-2.5 text-right bg-rose-800 text-white font-bold">Tổng Chi</th>
+                            <th class="p-2 md:p-2.5 text-right bg-amber-500 text-slate-900 font-extrabold">Dư Lũy Kế</th>
+                            <th class="p-2 md:p-2.5 text-right bg-teal-800 text-teal-100">FX KH ($)</th>
+                            <th class="p-2 md:p-2.5 text-right bg-blue-800 text-blue-100">FX Thực Tế ($)</th>
+                            <th class="p-2 md:p-2.5 text-center bg-slate-800">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody" class="divide-y divide-slate-200 text-xs">
                     </tbody>
                 </table>
-            </div>
-
-            <!-- GIAO DIỆN DẠNG CARD TỔNG QUAN CHO MOBILE -->
-            <div class="block md:hidden max-h-[28rem] overflow-y-auto space-y-2.5 pr-1" id="summaryCardList">
             </div>
         </div>
 
@@ -497,64 +493,29 @@
             }, 800);
         }
 
-        // RENDER BẢNG THỐNG KÊ TỔNG QUAN CHỈ CÓ 5 CỘT YÊU CẦU
+        // RENDER BẢNG DẠNG DÒNG (DÙNG CHO CẢ DI ĐỘNG & MÁY TÍNH)
         function renderTableSummary() {
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
-            
-            const cardList = document.getElementById('summaryCardList');
-            cardList.innerHTML = '';
 
             rowsData.forEach((row, idx) => {
                 const duClass = row.du >= 0 ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
                 const isSelected = idx === currentIndex;
 
-                // BẢNG MÁY TÍNH (Chỉ hiển thị đúng 5 chỉ số chính)
                 const tr = document.createElement('tr');
                 tr.className = isSelected ? 'bg-indigo-100/90 font-bold text-slate-900 border-l-4 border-indigo-600' : 'hover:bg-slate-50 transition';
                 tr.innerHTML = `
-                    <td class="p-2.5 font-semibold text-slate-800">${row.date} ${isSelected ? '📌' : ''}</td>
-                    <td class="p-2.5 text-right text-emerald-700 font-bold bg-emerald-50/50">${fmtVND(row.totalIncome)}</td>
-                    <td class="p-2.5 text-right text-rose-700 font-bold bg-rose-50/50">${fmtVND(row.totalExpense)}</td>
-                    <td class="p-2.5 text-right bg-amber-100/60 ${duClass}">${fmtVND(row.du)}</td>
-                    <td class="p-2.5 text-right text-teal-800 font-bold bg-teal-50/50">${fmtUSD(row.fxPlanUSD)}</td>
-                    <td class="p-2.5 text-right text-blue-700 font-bold bg-blue-50/50">${fmtUSD(p(row.fx_actual))}</td>
-                    <td class="p-2.5 text-center">
-                        <button onclick="jumpToIdx(${idx})" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition">Sửa</button>
+                    <td class="p-2 md:p-2.5 font-semibold text-slate-800 text-center">${row.date} ${isSelected ? '📌' : ''}</td>
+                    <td class="p-2 md:p-2.5 text-right text-emerald-700 font-bold bg-emerald-50/50">${fmtVND(row.totalIncome)}</td>
+                    <td class="p-2 md:p-2.5 text-right text-rose-700 font-bold bg-rose-50/50">${fmtVND(row.totalExpense)}</td>
+                    <td class="p-2 md:p-2.5 text-right bg-amber-100/60 ${duClass}">${fmtVND(row.du)}</td>
+                    <td class="p-2 md:p-2.5 text-right text-teal-800 font-bold bg-teal-50/50">${fmtUSD(row.fxPlanUSD)}</td>
+                    <td class="p-2 md:p-2.5 text-right text-blue-700 font-bold bg-blue-50/50">${fmtUSD(p(row.fx_actual))}</td>
+                    <td class="p-2 md:p-2.5 text-center">
+                        <button onclick="jumpToIdx(${idx})" class="px-2 py-0.5 md:px-2.5 md:py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] md:text-[11px] font-bold transition">Sửa</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
-
-                // THIẾT BỊ DI ĐỘNG (Card xem nhanh)
-                const cardStyle = isSelected ? 'border-2 border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border border-slate-200 bg-white';
-                
-                const card = document.createElement('div');
-                card.className = `p-3 rounded-xl ${cardStyle} text-xs space-y-2`;
-                card.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
-                        <span class="font-bold text-sm text-slate-900">${row.date} ${isSelected ? '📌' : ''}</span>
-                        <button onclick="jumpToIdx(${idx})" class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-[11px] font-semibold active:scale-95 transition">Xem / Sửa</button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-[11px]">
-                        <div class="bg-emerald-50/80 p-1.5 rounded-lg border border-emerald-100">
-                            <span class="text-slate-500 block text-[10px]">Tổng Thu</span>
-                            <span class="text-emerald-700 font-bold">${fmtVND(row.totalIncome)} đ</span>
-                        </div>
-                        <div class="bg-rose-50/80 p-1.5 rounded-lg border border-rose-100">
-                            <span class="text-slate-500 block text-[10px]">Tổng Chi</span>
-                            <span class="text-rose-700 font-bold">${fmtVND(row.totalExpense)} đ</span>
-                        </div>
-                        <div class="col-span-2 bg-amber-50/80 p-2 rounded-lg border border-amber-200/60 flex justify-between items-center">
-                            <span class="text-amber-900 font-semibold text-[11px]">Dư Lũy Kế:</span>
-                            <span class="${duClass} text-xs">${fmtVND(row.du)} đ</span>
-                        </div>
-                        <div class="col-span-2 grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-slate-600">
-                            <div>FX KH: <span class="text-teal-700 font-bold">${fmtUSD(row.fxPlanUSD)}</span></div>
-                            <div>FX Thực Tế: <span class="text-blue-700 font-bold">${fmtUSD(p(row.fx_actual))}</span></div>
-                        </div>
-                    </div>
-                `;
-                cardList.appendChild(card);
             });
         }
 
